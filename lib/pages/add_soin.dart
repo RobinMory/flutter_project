@@ -46,29 +46,14 @@ class AddSoinState extends State<AddSoin> {
         child: Form(
           //key: _formKey,
           child: Column(
-            children: <Widget>[
-            MyFuture(), MyButton()
-            ],
+            children: <Widget>[MyFuture(), MyButton()],
           ),
         ),
       ),
     );
   }
 
-  setListSoins() {
-    db.collection('soins').get().then((QuerySnapshot querySnapshot) {
-      querySnapshot.docs.forEach((doc) {
-        Soin soin = Soin(
-            id: doc.id,
-            nom: doc.get('nom'),
-            prix: doc.get('prix'),
-            date: widget.daySelected);
-        services.add(soin);
-      });
-    });
-  }
-
-  Future<List<Soin>> getListSoins() {
+  Future<List<Soin>> getListSoins() async {
     db.collection('soins').get().then((QuerySnapshot querySnapshot) {
       querySnapshot.docs.forEach((doc) {
         Soin soin = Soin(
@@ -82,46 +67,6 @@ class AddSoinState extends State<AddSoin> {
     return Future.value(services);
   }
 
-  Form MySearchField() {
-    return Form(
-        key: _formKey,
-        child: SearchField(
-          suggestions: services
-              .map((soin) => SearchFieldListItem<Soin>(soin.nom, item: soin))
-              .toList(),
-          suggestionState: Suggestion.expand,
-          textInputAction: TextInputAction.next,
-          hint: 'Choisissez un soin',
-          hasOverlay: false,
-          searchStyle: TextStyle(
-            fontSize: 18,
-            color: Colors.black.withOpacity(0.8),
-          ),
-          validator: (x) {
-            Soin soin = services.singleWhere((soin) => soin.nom == x);
-            if (x!.isEmpty || soin == null) {
-              return 'Entrez un soin valide';
-            }
-            return null;
-          },
-          searchInputDecoration: InputDecoration(
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(
-                color: Colors.black.withOpacity(0.8),
-              ),
-            ),
-            border: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.red),
-            ),
-          ),
-          maxSuggestionsInViewPort: 6,
-          itemHeight: 50,
-          onSuggestionTap: (soin) {
-            selectedSoin = soin.item!;
-          },
-        ));
-  }
-
   ElevatedButton MyButton() {
     return ElevatedButton(
         onPressed: () {
@@ -132,7 +77,7 @@ class AddSoinState extends State<AddSoin> {
         child: const Text('Save'));
   }
 
-  MyFuture() {
+  FutureBuilder<List<Soin>> MyFuture() {
     return FutureBuilder<List<Soin>>(
         future: soinsFuture,
         builder: (context, snapshot) {
@@ -142,7 +87,45 @@ class AddSoinState extends State<AddSoin> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Text("Veuillez patienter");
           }
-          return MySearchField();
+          services = snapshot.data!;
+          return Form(
+              key: _formKey,
+              child: SearchField(
+                suggestions: services
+                    .map((soin) =>
+                        SearchFieldListItem<Soin>(soin.nom, item: soin))
+                    .toList(),
+                suggestionState: Suggestion.expand,
+                textInputAction: TextInputAction.next,
+                hint: 'Choisissez un soin',
+                hasOverlay: false,
+                searchStyle: TextStyle(
+                  fontSize: 18,
+                  color: Colors.black.withOpacity(0.8),
+                ),
+                validator: (x) {
+                  Soin soin = services.singleWhere((soin) => soin.nom == x);
+                  if (x!.isEmpty || soin == null) {
+                    return 'Entrez un soin valide';
+                  }
+                  return null;
+                },
+                searchInputDecoration: InputDecoration(
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.black.withOpacity(0.8),
+                    ),
+                  ),
+                  border: const OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.red),
+                  ),
+                ),
+                maxSuggestionsInViewPort: 6,
+                itemHeight: 50,
+                onSuggestionTap: (soin) {
+                  selectedSoin = soin.item!;
+                },
+              ));
         });
   }
 }
