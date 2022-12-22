@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_project/models/client.dart';
+import 'package:flutter_project/models/service.dart';
 
 class ClientEditor extends StatefulWidget {
   final Client client;
@@ -17,6 +18,9 @@ class ClientEditorState extends State<ClientEditor> {
   final _formKey = GlobalKey<FormState>();
 
   var db = FirebaseFirestore.instance;
+    final Stream<QuerySnapshot> services =
+      FirebaseFirestore.instance.collection('services').snapshots();
+  List<DocumentSnapshot> documents = [];
 
   @override
   void initState() {
@@ -65,7 +69,7 @@ class ClientEditorState extends State<ClientEditor> {
                   onSaved: (value) {
                     widget.client.prenom = value!;
                   }),
-                  TextFormField(
+              TextFormField(
                   initialValue: widget.client.numero,
                   decoration: const InputDecoration(
                       hintText: 'Enter un numéro de téléphone',
@@ -84,25 +88,76 @@ class ClientEditorState extends State<ClientEditor> {
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
-                    Map<String,String> client = {
+                    Map<String, String> client = {
                       'nom': widget.client.nom,
                       'prenom': widget.client.prenom,
                       'numero': widget.client.numero,
                     };
-                    if(widget.client.getId() == ''){
+                    if (widget.client.getId() == '') {
                       db.collection('clients').add(client);
-                    }else{
-                      db.collection('clients').doc(widget.client.getId()).update(client);
+                    } else {
+                      db
+                          .collection('clients')
+                          .doc(widget.client.getId())
+                          .update(client);
                     }
                     Navigator.pop(context);
-                    }
+                  }
                 },
                 child: const Text('Save'),
               ),
+              StreamBuilder<QuerySnapshot>(
+                stream: services,
+                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (snapshot.hasError) {
+                    return const Text('Erreur de connextion Internet');
+                  }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Text("Veuillez patienter");
+                  }
+                  documents = snapshot.data!.docs;
+                  
+                  documents = documents.where((searchedService) {
+                    return searchedService.get('id_client').toString() ==
+                        widget.client.getId().toString();
+                  }).toList();
+                  if(documents.length == 0) {
+                    return const Text("Aucun service");
+                  }else{
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: documents.length,
+                    itemBuilder: (context, index) {
+                      late Service service = Service(
+                          id: documents[index].id,
+                          date: documents[index].get('date'),
+                          heure: documents[index].get('heure'),
+                          clientId: documents[index].get('id_client'),
+                          soinId: documents[index].get('id_soin'));
+                      return ListTile(
+                        key: ValueKey(service.id),
+                        onTap: () async {},
+                        title: Text(getHourFormat(service.heure)),
+                      );
+                    },
+                  );
+                  }
+                },
+              )
             ],
           ),
         ),
       ),
     );
+  }
+
+   String getHourFormat(String s) {
+    String formattedTime = s.substring(s.indexOf('(') + 1, s.indexOf(')'));
+    return formattedTime;
+  }
+
+  String getDateFormat(String s) {
+    String formattedDate = s.substring(s.indexOf('[') + 1, s.indexOf(']'));
+    return formattedDate;
   }
 }

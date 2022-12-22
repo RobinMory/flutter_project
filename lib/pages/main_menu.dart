@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_project/pages/calendar_page.dart';
 import 'package:flutter_project/pages/client_list.dart';
+import 'package:flutter_project/pages/statpage.dart';
 
 class MainMenu extends StatefulWidget {
 
@@ -65,7 +66,13 @@ class _MainMenuScreenState extends State<MainMenu> {
               margin: const EdgeInsets.all(8.0),
               color: Colors.red,
               child:ElevatedButton(
-                onPressed: () {},
+                onPressed:  () async {
+              await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                  builder: (context) => const StatPage(title: 'Statistiques')));
+              setState(() {});
+            },
                 child: const Text('Statistiques'),
               ), 
             ),
