@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class Service {
 
   final String id;
@@ -18,5 +16,9 @@ class Service {
 
   String getId() {
     return id;
+  }
+
+  String getHeure() {
+    return heure;
   }
 }

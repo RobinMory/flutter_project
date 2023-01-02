@@ -11,8 +11,8 @@ class ClientListView extends StatefulWidget {
 }
 
 class _ClientsListViewState extends State<ClientListView> {
-
-  final Stream<QuerySnapshot> clients = FirebaseFirestore.instance.collection('clients').snapshots();
+  final Stream<QuerySnapshot> clients =
+      FirebaseFirestore.instance.collection('clients').snapshots();
   late DocumentReference ref;
   var db = FirebaseFirestore.instance;
 
@@ -51,13 +51,18 @@ class _ClientsListViewState extends State<ClientListView> {
               return const Text("Veuillez patienter");
             }
             documents = snapshot.data!.docs;
-            if (searchText.length > 0) {
+            if (searchText.isNotEmpty) {
               documents = documents.where((searchedClient) {
                 return searchedClient
-                    .get('nom')
-                    .toString()
-                    .toLowerCase()
-                    .contains(searchText.toLowerCase());
+                        .get('nom')
+                        .toString()
+                        .toLowerCase()
+                        .contains(searchText.toLowerCase()) ||
+                    searchedClient
+                        .get('prenom')
+                        .toString()
+                        .toLowerCase()
+                        .contains(searchText.toLowerCase());
               }).toList();
             }
             return ListView.builder(
@@ -66,24 +71,36 @@ class _ClientsListViewState extends State<ClientListView> {
               itemBuilder: (context, index) {
                 late Client client = Client(
                     id: documents[index].id,
-                    nom:documents[index].get('nom'),
+                    nom: documents[index].get('nom'),
                     prenom: documents[index].get('prenom'),
                     numero: documents[index].get('numero'));
-                return ListTile(
-                  key: ValueKey(client.id),
-                  onTap: () async {
-                    await Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => ClientEditor(client: client)));
-                  },
-                  title: Text('${client.nom} ${client.prenom}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      showAlertDialog(context, client);
-                    },
-                  ),
-                );
+                return Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.blueGrey[100],
+                    ),
+                    child: ListTile(
+                      key: ValueKey(client.id),
+                      leading: const Icon(
+                        Icons.account_circle,
+                        size: 50,
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    ClientEditor(client: client)));
+                      },
+                      title: Text('${client.nom} ${client.prenom}'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () {
+                          showAlertDialog(context, client);
+                        },
+                      ),
+                    ));
               },
             );
           },

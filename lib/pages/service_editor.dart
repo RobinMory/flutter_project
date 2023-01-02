@@ -7,19 +7,20 @@ import 'package:flutter_project/models/soin.dart';
 import 'package:intl/intl.dart';
 import 'package:searchfield/searchfield.dart';
 
-class AddSoin extends StatefulWidget {
+class ServiceEditor extends StatefulWidget {
   final DateTime daySelected;
   final Service service;
 
-  const AddSoin({super.key, required this.daySelected, required this.service});
+  const ServiceEditor(
+      {super.key, required this.daySelected, required this.service});
 
   @override
-  AddSoinState createState() {
-    return AddSoinState();
+  ServiceEditorState createState() {
+    return ServiceEditorState();
   }
 }
 
-class AddSoinState extends State<AddSoin> {
+class ServiceEditorState extends State<ServiceEditor> {
   final _formKey = GlobalKey<FormState>();
 
   var db = FirebaseFirestore.instance;
@@ -36,13 +37,17 @@ class AddSoinState extends State<AddSoin> {
   late Soin selectedSoin;
   late Client selectedClient;
 
-  TimeOfDay _time = TimeOfDay.now();
+  SearchFieldListItem<Client>? _clientSelect;
+  SearchFieldListItem<Soin>? _soinSelect;
+
+  late TimeOfDay _time;
 
   @override
   void initState() {
     super.initState();
     soinsFuture = getListSoins();
     clientsFuture = getListClients();
+    _time = getTimeValue();
   }
 
   @override
@@ -52,22 +57,29 @@ class AddSoinState extends State<AddSoin> {
           title: Text(DateFormat.yMMMd().format(widget.daySelected)),
         ),
         body: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: SingleChildScrollView(
-            child: Column(
-              key: _formKey,
-              children: <Widget>[
-                MySearchFieldSoin(),
-                MySearchFieldClient(),
-                MyHourPicker(),
-                MyButton()
-              ],
-            ),
-          ),
-        ));
+            padding: const EdgeInsets.all(8.0),
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: <Widget>[
+                    mysearchfieldsoin(),
+                    const SizedBox(
+                      height: 30,
+                    ),
+                    mysearchfieldclient(),
+                    const SizedBox(
+                      height: 30,
+                    ),
+                    myhourpicker(),
+                    mybutton()
+                  ],
+                ),
+              ),
+            )));
   }
 
-  FutureBuilder<List<Soin>> MySearchFieldSoin() {
+  FutureBuilder<List<Soin>> mysearchfieldsoin() {
     return FutureBuilder<List<Soin>>(
         future: soinsFuture,
         builder: (context, snapshot) {
@@ -79,6 +91,7 @@ class AddSoinState extends State<AddSoin> {
           }
           services = snapshot.data!;
           return SearchField(
+            initialValue: getSelectedSoin(),
             suggestions: services
                 .map((soin) => SearchFieldListItem<Soin>(soin.nom, item: soin))
                 .toList(),
@@ -90,9 +103,9 @@ class AddSoinState extends State<AddSoin> {
               fontSize: 18,
               color: Colors.black.withOpacity(0.8),
             ),
-            validator: (x) {
-              if (x!.isEmpty) {
-                return 'Entrez un soin';
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Veuillez entrer un soin';
               }
               return null;
             },
@@ -115,7 +128,7 @@ class AddSoinState extends State<AddSoin> {
         });
   }
 
-  FutureBuilder<List<Client>> MySearchFieldClient() {
+  FutureBuilder<List<Client>> mysearchfieldclient() {
     return FutureBuilder<List<Client>>(
         future: clientsFuture,
         builder: (context, snapshot) {
@@ -127,6 +140,7 @@ class AddSoinState extends State<AddSoin> {
           }
           clients = snapshot.data!;
           return SearchField(
+            initialValue: getSelectedClient(),
             suggestions: clients
                 .map((client) => SearchFieldListItem<Client>(
                     "${client.nom} ${client.prenom}",
@@ -141,8 +155,8 @@ class AddSoinState extends State<AddSoin> {
               color: Colors.black.withOpacity(0.8),
             ),
             validator: (x) {
-              if (x!.isEmpty) {
-                return 'Entrez un client';
+              if (x == null || x.isEmpty) {
+                return 'Veuillez entrer un client';
               }
               return null;
             },
@@ -160,21 +174,23 @@ class AddSoinState extends State<AddSoin> {
             itemHeight: 50,
             onSuggestionTap: (client) {
               selectedClient = client.item!;
+              FocusScope.of(context).unfocus();
             },
           );
         });
   }
 
-  ElevatedButton MyButton() {
-    return ElevatedButton(
+  Padding mybutton() {
+    return Padding(padding: const EdgeInsets.all(18),
+    child :ElevatedButton(
         onPressed: () {
           if (_formKey.currentState!.validate()) {
             _formKey.currentState!.save();
             Map<String, String> service = {
               'date': widget.daySelected.toString(),
-              'heure': _time.toString(),
-              'id_client' : selectedClient.id,
-              'id_soin' : selectedSoin.id,
+              'heure': getFirebaseHourFormat(_time),
+              'id_client': selectedClient.id,
+              'id_soin': selectedSoin.id,
             };
             if (widget.service.getId() == '') {
               db.collection('services').add(service);
@@ -187,11 +203,24 @@ class AddSoinState extends State<AddSoin> {
             Navigator.pop(context);
           }
         },
-        child: const Text('Save'));
+        style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white, padding: const EdgeInsets.all(18), backgroundColor: Colors.lightBlue[400],
+                  shadowColor: Colors.black,
+                  fixedSize: const Size(300,65),
+                  textStyle: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold, fontFamily: 'Manrope'),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(32.0),
+                  ),
+                ),
+        child: const Text('Sauver')
+        ),
+      );
   }
 
-  ElevatedButton MyHourPicker() {
-    return ElevatedButton(
+  ElevatedButton myhourpicker() {
+    return ElevatedButton.icon(
+      icon: const Icon(Icons.access_time_outlined),
+      label : getHourFormat(_time),
         onPressed: () {
           Navigator.of(context).push(showPicker(
             value: _time,
@@ -205,7 +234,16 @@ class AddSoinState extends State<AddSoin> {
             },
           ));
         },
-        child: Text(getHourFormat(_time)));
+        style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white, padding: const EdgeInsets.all(18), backgroundColor: Colors.lightBlue[400],
+                  shadowColor: Colors.black,
+                  fixedSize: const Size(300,65),
+                  textStyle: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold, fontFamily: 'Manrope'),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(32.0),
+                  ),
+    ),
+    );
   }
 
   Future<List<Client>> getListClients() async {
@@ -218,6 +256,12 @@ class AddSoinState extends State<AddSoin> {
           prenom: doc.get('prenom'),
           numero: doc.get('numero'));
       clients.add(client);
+      if (widget.service.clientId == client.id) {
+        selectedClient = client;
+        _clientSelect = SearchFieldListItem<Client>(
+            "${client.nom} ${client.prenom}",
+            item: client);
+      }
     }
     return clients;
   }
@@ -232,13 +276,45 @@ class AddSoinState extends State<AddSoin> {
           prix: doc.get('prix'),
           date: widget.daySelected);
       services.add(soin);
+      if (widget.service.soinId == soin.id) {
+        selectedSoin = soin;
+        _soinSelect = SearchFieldListItem<Soin>(soin.nom, item: soin);
+      }
     }
     return services;
   }
 
-  String getHourFormat(TimeOfDay time) {
-    var replacingTime = time.replacing(hour: time.hour, minute: time.minute);
-    String formattedTime = "${replacingTime.hour}:${replacingTime.minute}";
-    return formattedTime;
+  String getFirebaseHourFormat(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, "0");
+    final min = time.minute.toString().padLeft(2, "0");
+    return "$hour:$min";
+  }
+
+  Text getHourFormat(TimeOfDay timeVariable) {
+    final hour = timeVariable.hour.toString().padLeft(2, "0");
+    final min = timeVariable.minute.toString().padLeft(2, "0");
+    return  Text("$hour:$min");
+  }
+
+  getSelectedSoin() {
+    if (_soinSelect != null) {
+      return _soinSelect;
+    }
+    return null;
+  }
+
+  getSelectedClient() {
+    if (_clientSelect != null) {
+      return _clientSelect;
+    }
+    return null;
+  }
+  
+  TimeOfDay getTimeValue() {
+    if (widget.service.getId() != '') {
+     String s = widget.service.getHeure();
+     return TimeOfDay(hour:int.parse(s.split(":")[0]),minute: int.parse(s.split(":")[1]));
+    }
+    return TimeOfDay.now();
   }
 }

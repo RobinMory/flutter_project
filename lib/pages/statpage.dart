@@ -13,8 +13,11 @@ class StatPage extends StatefulWidget {
 }
 
 class StatPageState extends State<StatPage> {
-  DateTime today = DateTime.now();
+
   var db = FirebaseFirestore.instance;
+  final Stream<QuerySnapshot> services =
+      FirebaseFirestore.instance.collection('services').snapshots();
+  List<DocumentSnapshot> documents = [];
 
   @override
   void initState() {
@@ -23,32 +26,79 @@ class StatPageState extends State<StatPage> {
 
   @override
   Widget build(BuildContext context) {
+
+    double width =  MediaQuery.of(context).size.width - 80;
+
     return Scaffold(
-        appBar: AppBar(
-          title: Text(widget.title),
+      appBar: AppBar(title: Text(widget.title)),
+      body: Container(
+        color: Colors.white,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(0,40,0,20),
+            child: Column(children: [
+            Wrap(
+            runSpacing: 30,
+            children: [
+              modeButton("Meilleur client :", "Client 3", Icons.list, width),
+              modeButton("Soin le plus demandé :", "Soin des mains", Icons.calendar_today, width),
+              modeButton("Recette du mois/année :", "3500 €", Icons.numbers, width)
+            ],
+          ) 
+            ]
+            ),
+          ),
         ),
-        body: Center(
-            child: Column(
+        )
+      );
+  }
+  
+  modeButton(String titre, String sousTitre, IconData icon, double width) {
+    return GestureDetector(
+      child: Container(
+        width: width,
+        decoration: BoxDecoration(
+          color: Colors.blue,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              "Client le plus actif",
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Padding(
+              padding: const EdgeInsets.only(left: 22.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                       Text(
+                      titre,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.none,
+                          fontFamily: 'Manrope',
+                          color: Colors.white,
+                          fontSize: 18),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6.0),
+                      child: Text(
+                        sousTitre,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            decoration: TextDecoration.none,
+                            fontFamily: 'Manrope',
+                            fontSize: 14),
+                      ),
+                    )
+                  ]
+                ),
             ),
-            Text(
-              "Soin le plus demandé",
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              "Recette du mois",
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+             Padding(padding: const EdgeInsets.symmetric(horizontal: 40,vertical: 80,),
+             child: Icon(icon, color : Colors.white,),
+             )
           ],
-        )));
+        ),
+      ),
+    );
   }
 }
+
